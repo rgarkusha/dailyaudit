@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no, width=device-width">
+    <title></title>
+
+
+    <!-- compiled css output -->
+    <link href="css/ionic.app.css" rel="stylesheet">
+    <link href="css/style.css" rel="stylesheet">
+
+    <!-- ionic/angularjs/Firbase js -->
+    <script src="lib/ionic/js/ionic.bundle.js"></script>
+    <script src='https://cdn.firebase.com/js/client/2.2.1/firebase.js'></script>
+
+    <!-- cordova script (this will be a 404 during development) -->
+    <script src="cordova.js"></script>
+
+    <!-- your app's js -->
+    <script src="js/app.js"></script>
+    <!-- <script src="js/controllers.js"></script> -->
+    <script src="js/controllers/app_ctrl.js"></script>
+    <script src="js/controllers/audit_ctrl.js"></script>
+    <script src="js/controllers/complete_ctrl.js"></script>
+    <script src="js/controllers/download_ctrl.js"></script>
+    <script src="js/controllers/settings_ctrl.js"></script>
+    <!-- <script src="js/services.js"></script> -->
+    <script src="js/services/constants.js"></script>
+    <script src="js/services/db_tool.js"></script>
+    <script src="js/services/questions.js"></script>
+    <script src="js/services/reports.js"></script>
+    <script src="js/services/reports_db.js"></script>
+    <script src="js/services/spreadsheets.js"></script>
+    <script src="js/services/staff_db.js"></script>
+    <script src="js/services/auth.js"></script>
+    <script src="js/services/users.js"></script>
+
+  </head>
+  <body ng-app="starter">
+    <!--
+      The nav bar that will be updated as we navigate between views.
+    -->
+    <ion-nav-bar class="bar-stable">
+      <ion-nav-back-button>
+      </ion-nav-back-button>
+    </ion-nav-bar>
+    <!--
+      The views will be rendered in the <ion-nav-view> directive below
+      Templates are in the /templates folder (but you could also
+      have templates inline in this html file if you'd like).
+    -->
+    <ion-nav-view></ion-nav-view>
+ 
+	<!-- 
+	  Templates need to be cached to work on Google drive. Inlining
+	  is used here until some other manner of cacheing is implemented
+	 -->
+<!--*************************************************************** -->
+<!--*************************************************************** -->
+
+<script type="text/ng-template" id="add-staff.html">
+<div class="list name-field">
+  <label class="item item-input">
+    <input ng-model="staffSearchText" type="text" placeholder="Search: Last Name, First Name">
+  </label>
+</div>
+<ion-scroll scrollbar-x="false" scrollbar-y="false" direction="y" style="height: 300px;">
+  <div class="list">
+    <div ng-repeat="staff in staffDirectory | filter:staffSearchText | orderBy:'toString()'">
+      <ion-checkbox ng-checked="staffIsInSchedule(staff)" ng-click="toggleStaffSchedule(staff)">
+        {{ staff }}
+      </ion-checkbox>
+    </div>
+  </div>
+</ion-scroll>
+</script>
+
+<!--*************************************************************** -->
+<!--*************************************************************** -->
+
+<!--*************************************************************** -->
+<!--*************************************************************** -->
+
+<script type="text/ng-template" id="audit.html">
+<ion-view title="Daily Audit">
+  <ion-content padding="true">
+    <div class="row">
+        <div class="col col-10"></div>
+        <div class="col col-80 col-center">
+
+<h4>Please enter your name:</h4>
+<div class="list name-field">
+  <label class="item item-input">
+    <input ng-model="$parent.supervisor.name" type="text" placeholder="Last Name, First Name">
+  </label>
+</div>
+
+<div class="spacer"</div>
+
+<h4>Choose your shift:</h4>
+
+<div class="button-bar">
+  <a class="button button-outline"  ng-repeat="shift in getShifts()" ng-click="setShift($index)" ng-class="[{active: supervisor.shift==$index}, getBtnColor($index)]">{{shift}}</a>
+</div>
+
+<div class="spacer"</div>
+
+<h4>Choose your floor:</h4>
+
+<div class="button-bar">
+  <a class="button button-outline"  ng-repeat="floor in getFloors()" ng-click="setFloor($index)" ng-class="[{active: supervisor.floor==$index}, getBtnColor($index)]">{{floor}}</a>
+</div>
+
+<div class="spacer"</div>
+
+<h4>Add names of staff you audited today during your rounds</h4>
+
+
+<button ng-click="addDailyStaff()" class="button button-balanced button-outline">Add / Remove Staff
+    </button>
+
+<div class="spacer"</div>
+
+
+<ion-scroll scrollbar-x="false" scrollbar-y="false" direction="y" style="height: 250px">
+<div class="list">
+  <div class="item item-button-right" ng-repeat="staff in staffList | orderBy:'+name'">
+    {{ staff.name }}
+    <button ng-click="removeWorkingStaff($index)" class="button button-assertive button-outline">
+      <i class="icon ion-minus-circled"></i>
+    </button>
+  </div>
+</div>
+</ion-scroll>
+
+<div class="spacer"</div>
+
+<div ng-repeat="report in reports track by report.id">
+  <h4>{{report.title}}</h4>
+  <ion-checkbox ng-model="report.ok">
+    {{report.ok_title}}
+  </ion-checkbox>
+
+  <div class="incidents" ng-hide="report.ok">
+    <button ng-click="showIncidentReportDlg(report.id)" class="button button-block button-assertive">
+      Add Incident Report
+    </button>
+  </div>
+  <!---->
+
+  <div ng-hide="report.ok" ng-repeat="incident in $parent.reports[report.id].incidents">
+    <div class="card">
+      <div class="item item-button-right">
+          {{report.title}} Incident Report
+          <button ng-click="removeIncident(report.id, $index)" class="button button-assertive button-outline">
+           <i class="icon ion-minus-circled"></i>
+          </button>
+      </div>
+        <!--
+    <div class="item item-text-wrap">
+      <div class="item" ng-repeat="staff in incident.staffList">
+      {{ staff.name }}
+      
+      </div>
+    <div style="padding-top: 15px">
+      {{ incident.description }}
+    </div>
+    -->
+    <div style="padding: 15px">
+      <b>Incident Description:</b> </br>
+      {{ incident.description }}
+    </div>
+    <div class="item item-text-wrap">
+      <b>Staff Involved:</b></br>
+      <div class="item" ng-repeat="staff in incident.staffList">
+      {{ staff.name }}
+      
+      </div>
+    
+
+
+   </div>
+  </div>
+</div>
+
+  <!---->
+  <div class="spacer"></div>
+</div>
+
+<div class="spacer"</div>
+  <div class="spacer"</div>
+
+<h4>End of Audit</h4>
+<ion-list>
+  <ion-checkbox ng-model="$parent.terms">I have reviewed the information entered and ensured it is accurate.</ion-checkbox>
+
+<div class="spacer"</div>
+
+</ion-list>
+          <a class="button button-balanced center-btn" ng-click="submit()" ng-disabled="!$parent.terms">
+            Submit
+          </a>
+
+        </div>
+        <div class="col col-10"></div>
+    </div>
+  </ion-content>
+</ion-view>
+</script>
+
+<!--*************************************************************** -->
+<!--*************************************************************** -->
+
+<!--*************************************************************** -->
+<!--*************************************************************** -->
+
+<script type="text/ng-template" id="complete.html">
+<ion-view title="Eatonville Care Center Daily Audit" hide-back-button="true">
+  <ion-content padding="true">
+    <div class="row">
+        <div class="col col-25"></div>
+          <div class="col col-50 col-center center">
+            <h4 style="margin-top: 50px">Thank you for submitting the audit!</h4>
+            </br>
+            </br>
+            </br>
+<button ng-click="logOut()" class="button button-balanced">Log Out
+    </button>
+          </div>
+
+        <div class="col col-25"></div>
+    </div>
+      
+  </ion-content>
+</ion-view>
+</script>
+
+<!--*************************************************************** -->
+<!--*************************************************************** -->
+
+<!--*************************************************************** -->
+<!--*************************************************************** -->
+
+<script type="text/ng-template" id="incident-names.html">
+<ion-scroll scrollbar-x="false" scrollbar-y="false" direction="y" style="height: 200px;">
+  <div class="list">
+    <div ng-repeat="staff in staffList">
+      <ion-checkbox ng-model="$parent.values[$index]">
+        {{ staff.name }}
+      </ion-checkbox>
+    </div>
+  </div>
+</ion-scroll>
+<textarea rows="7" ng-model="$parent.report" style="margin-top:10px; resize: none" placeholder="Enter incident report..."></textarea>
+</script>
+
+<!--*************************************************************** -->
+<!--*************************************************************** -->
+
+<!--*************************************************************** -->
+<!--*************************************************************** -->
+
+<script type="text/ng-template" id="tab-download.html">
+<ion-view title="Eatonville Care Center Daily Audit" hide-back-button="true">
+  <ion-content padding="true">
+    <div class="row">
+        <div class="col col-25"></div>
+          <div class="col col-50 col-center center">
+  <div class="spacer"></div>
+  <div class="spacer"></div>
+
+  <button ng-click="downloadAudits()" class="button icon-left ion-archive button-balanced button-outline">Download All Audits
+  </button>
+
+            
+  <div class="spacer"></div>
+  </br></br></br>
+
+  <button ng-click="deleteAudits()" class="button icon-left ion-android-delete button-assertive button-outline">Delete All Audits
+    </button>
+
+          </div>
+        <div class="col col-25"></div>
+    </div>
+      
+  </ion-content>
+</ion-view>
+</script>
+
+<!--*************************************************************** -->
+<!--*************************************************************** -->
+
+<!--*************************************************************** -->
+<!--*************************************************************** -->
+
+<script type="text/ng-template" id="tab-home.html">
+<ion-view title="Eatonville Care Center Daily Audit">
+  <ion-content padding="true">
+    <div class="row">
+        <div class="col col-25"></div>
+        <div class="col col-50 col-center center">
+
+          <h2 style="margin-top: 50px">Click to start the daily audit.</h2>
+          <a class="button button-balanced" ng-click="logIn()" style="margin-top: 50px">
+            <div ng-if="loggedIn()">
+              Start Audit
+            </div>
+            <div ng-if="!loggedIn()">
+              Log In
+            </div>
+          </a>
+
+        </div>
+        <div class="col col-25"></div>
+    </div>
+      
+  </ion-content>
+</ion-view>
+</script>
+
+<!--*************************************************************** -->
+<!--*************************************************************** -->
+
+<!--*************************************************************** -->
+<!--*************************************************************** -->
+
+<script type="text/ng-template" id="tab-settings.html">
+<ion-view title="Settings">
+  <ion-content padding="true">
+    <div class="row">
+        <div class="col col-25"></div>
+        <div class="col col-50 col-center">
+
+
+          <h2 style="margin-top: 50px">Edit Staff Directory</h2>
+
+          <div class="spacer"</div>
+
+<h4>Enter name of staff to add to directory</h4>
+
+<div class="list name-field">
+  <div class="item-button-right">
+    <label class="item item-input">
+      <input ng-model="$parent.staffName" type="text" placeholder="Last Name, First Name">
+    </label>
+    <button ng-click="addStaffToDirectory()" class="button button-balanced button-outline">Add
+    </button>
+  </div>
+</div>
+
+<ion-scroll scrollbar-x="false" scrollbar-y="false" direction="y" style="height: 500px">
+<div class="list">
+  <div class="item item-button-right" ng-repeat="staff in staffDirectory">
+    {{ staff.name }}
+    <button ng-click="removeStaffFromDirectory($index)" class="button button-assertive button-outline">
+      <i class="icon ion-minus-circled"></i>
+    </button>
+  </div>
+</div>
+</ion-scroll>
+
+          <h2 style="margin-top: 50px">Edit Questions</h2>
+
+          <div class="spacer"</div>
+
+<h4>Enter question title and confirmation text.</h4>
+
+<div class="list name-field">
+  <div class="item-button-right">
+    <label class="item item-input">
+      <input ng-model="$parent.reportTitle" type="text" placeholder="Title">
+    </label>
+    <label class="item item-input">
+      <input ng-model="$parent.reportConfirm" type="text" placeholder="Confirmation text">
+    </label>
+    <button ng-click="addReportToDirectory()" class="button button-balanced button-outline">Add
+    </button>
+  </div>
+</div>
+
+<ion-scroll scrollbar-x="false" scrollbar-y="false" direction="y" style="height: 250px">
+<div class="list">
+  <div class="item item-button-right" ng-repeat="report in reportDirectory">
+    <h2>{{ report.title }}</h2> 
+    {{ report.ok_title }}
+    <button ng-click="removeReportFromDirectory($index)" class="button button-assertive button-outline">
+      <i class="icon ion-minus-circled"></i>
+    </button>
+  </div>
+</div>
+</ion-scroll>
+
+        </div>
+        <div class="col col-25"></div>
+    </div>
+      
+  </ion-content>
+</ion-view>
+</script>
+
+<!--*************************************************************** -->
+<!--*************************************************************** -->
+
+<!--*************************************************************** -->
+<!--*************************************************************** -->
+
+<script type="text/ng-template" id="tabs.html">
+<ion-tabs class="tabs-positive">
+
+  <ion-tab icon="ion-home" ui-sref="tab.home">
+    <ion-nav-view name="home-tab"></ion-nav-view>
+  </ion-tab>
+  <ion-tab class="{{showSettings()}}" icon="ion-ios-settings-strong" ui-sref="tab.settings">
+    <ion-nav-view name="settings-tab"></ion-nav-view>
+  </ion-tab>
+  <ion-tab class="{{showDownload()}}" icon="ion-archive" ui-sref="tab.download">
+    <ion-nav-view name="download-tab"></ion-nav-view>
+  </ion-tab>
+  <ion-tab class="{{showLogout()}}" icon="ion-log-out" ng-click="logOut()">
+  </ion-tab>
+
+</ion-tabs>
+</script>
+
+<!--*************************************************************** -->
+<!--*************************************************************** -->  </body>
+</html>
